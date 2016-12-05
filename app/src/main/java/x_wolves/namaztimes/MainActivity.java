@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Location;
 import android.location.LocationListener;
@@ -28,6 +29,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner;
+
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -36,12 +39,21 @@ import java.util.List;
 import java.util.Objects;
 import java.util.TimeZone;
 
+
+
 public class MainActivity extends AppCompatActivity {
+
+    String[] mCalculation = {"Jafari", "Islamic Science Karachi", "I.S.N.A", "Muslim World League", "Makkah", "Egypt", "Tehran"};
+    String[] mTime = {"24 Hours", "12 Hours"};
+    String[] mJuristiction = {"Shafii" , "Hanafi"};
+
     private FloatingActionButton button;
     private TextView textView;
     private TextView txtPrayerTimes;
     private LocationManager locationManager;
     private LocationListener locationListener;
+
+    private MaterialBetterSpinner spCalculation, spTimeFormat, spJuristiction;
     ArrayList prayerTimes;
 
     static IntentFilter s_intentFilter;
@@ -58,20 +70,44 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Spinner spinner = (Spinner) findViewById(R.id.Choice);
-        ArrayAdapter<String> adapter;
-        List<String> list;
+        spCalculation = (MaterialBetterSpinner) findViewById(R.id.spCalculation);
+        spJuristiction = (MaterialBetterSpinner) findViewById(R.id.spJuristiction);
+        spTimeFormat = (MaterialBetterSpinner) findViewById(R.id.spTimeFormat);
 
-        list = new ArrayList<String>();
-        list.add("Item 1");
-        list.add("Item 2");
-        list.add("Item 3");
-        list.add("Item 4");
-        list.add("Item 5");
-        adapter = new ArrayAdapter<String>(getApplicationContext(),
-                android.R.layout.simple_spinner_item, list);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(adapter);
+        ArrayAdapter<String> arrayAdapter;
+
+        FloatingActionButton fabChangeProfile = (FloatingActionButton) findViewById(R.id.fabSwitchMode);
+        fabChangeProfile.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ((AudioManager) getSystemService(Context.AUDIO_SERVICE)).setRingerMode(AudioManager.RINGER_MODE_NORMAL);
+            }
+        });
+
+        FloatingActionButton fabVibrate = (FloatingActionButton) findViewById(R.id.fabVibrate);
+        fabVibrate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ((AudioManager) getSystemService(Context.AUDIO_SERVICE)).setRingerMode(AudioManager.RINGER_MODE_SILENT);
+
+            }
+        });
+
+
+
+        arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, mCalculation);
+        spCalculation.setAdapter(arrayAdapter);
+
+
+        arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, mJuristiction);
+        spJuristiction.setAdapter(arrayAdapter);
+
+        arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, mTime);
+        spTimeFormat.setAdapter(arrayAdapter);
+
+        //spDesignation.setHintTextColor(Color.GRAY);
+        //spDesignation.setFloatingLabelTextColor(Color.GRAY);
+
 
         txtPrayerTimes = (TextView) findViewById(R.id.txtPrayerTimes);
         button = (FloatingActionButton) findViewById(R.id.fab);
@@ -98,10 +134,12 @@ public class MainActivity extends AppCompatActivity {
                         .getOffset(Calendar.getInstance().getTimeInMillis()))
                         / (1000 * 60 * 60);
                 PrayTime prayers = new PrayTime();
-                prayers.setTimeFormat(prayers.Time12);
-                prayers.setCalcMethod(prayers.Makkah);
-                prayers.setAsrJuristic(prayers.Shafii);
+
+                prayers.setTimeFormat( getTimeFormat() );//Time Format
+                prayers.setCalcMethod( getCalculation() );//Calculation
+                prayers.setAsrJuristic( getJuristiction() );//Juristiction
                 prayers.setAdjustHighLats(prayers.AngleBased);
+
                 int[] offsets = { 0, 0, 0, 0, 0, 0, 0 }; // {Fajr,Sunrise,Dhuhr,Asr,Sunset,Maghrib,Isha}
                 prayers.tune(offsets);
                 Date now = new Date();
@@ -118,9 +156,9 @@ public class MainActivity extends AppCompatActivity {
 
                 if(DateFormat.format("hh:mm aaa", Calendar.getInstance().getTime())== prayerTimes.get(2)) {
                     Toast.makeText(getApplicationContext(), "Peace mode activated", Toast.LENGTH_SHORT).show();
-                    AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
-                    audioManager.setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
+                   //silent = 0, vibrate =  1, ring =  3.
                 }
+
             }
 
 
@@ -152,6 +190,28 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    public int getTimeFormat(){
+        if (spTimeFormat.getText().toString().equals("24 Hours")) { return 0; }
+        else { return 1; }
+    }
+
+    public int getJuristiction(){
+        if (spJuristiction.getText().toString().equals("Shafii")){ return 0;}
+        else { return 1; }
+
+    }
+
+    public int getCalculation(){
+
+        if (spCalculation.getText().toString().equals("Jafari")) { return 0;}
+        else if (spCalculation.getText().toString().equals("Islamic Science Karachi")) { return 1;}
+        else if (spCalculation.getText().toString().equals("I.S.N.A")) { return 2;}
+        else if (spCalculation.getText().toString().equals("Muslim World League")) { return 3;}
+        else if (spCalculation.getText().toString().equals("Makkah")) { return 4;}
+        else if (spCalculation.getText().toString().equals("Egypt")) { return 5;}
+        else { return 6;}
+    }
+
     private final BroadcastReceiver m_timeChangedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -162,10 +222,9 @@ public class MainActivity extends AppCompatActivity {
                 String current = (String) DateFormat.format("hh:mm aa", Calendar.getInstance().getTime());
                 String pray = prayerTimes.get(0).toString();
 
-                if( current == pray) {
+                if(current == pray) {
                     Toast.makeText(getApplicationContext(), "Peace mode activated", Toast.LENGTH_SHORT).show();
-                    AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
-                    audioManager.setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
+                    ((AudioManager) getSystemService(Context.AUDIO_SERVICE)).setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
                     Toast.makeText(context, "Helo", Toast.LENGTH_SHORT).show();
                 }
             }
