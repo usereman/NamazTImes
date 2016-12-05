@@ -6,6 +6,7 @@
     <uses-permissions android:name="android.permission.INTERNET"/>
     <uses-permissions android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permissions android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
 
 
     <receiver android:name=".TimeChangedReceiver">
