@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -21,21 +22,23 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.text.format.DateFormat;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.Spinner;
+
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.weiwangcn.betterspinner.library.material.MaterialBetterSpinner;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.TimeZone;
 
@@ -70,6 +73,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
         spCalculation = (MaterialBetterSpinner) findViewById(R.id.spCalculation);
         spJuristiction = (MaterialBetterSpinner) findViewById(R.id.spJuristiction);
         spTimeFormat = (MaterialBetterSpinner) findViewById(R.id.spTimeFormat);
@@ -88,7 +94,11 @@ public class MainActivity extends AppCompatActivity {
         fabVibrate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                ((AudioManager) getSystemService(Context.AUDIO_SERVICE)).setRingerMode(AudioManager.RINGER_MODE_SILENT);
+                try {
+                    ((AudioManager) getSystemService(Context.AUDIO_SERVICE)).setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
+                }catch (Exception e){
+                    Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
 
             }
         });
@@ -116,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(MainActivity.this, "No", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Fetching Namaz Times", Toast.LENGTH_SHORT).show();
                 //noinspection MissingPermission
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 400, locationListener);
 
@@ -127,9 +137,15 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onLocationChanged(Location location) {
-                textView.append("\n " + location.getLatitude() + " " + location.getLongitude());
+
+                String addr;
+                //textView.append("\n " + location.getLatitude() + " " + location.getLongitude());
+
                 double longitude = location.getLongitude();
                 double latitude = location.getLatitude();
+                addr = getAddress(latitude, longitude);
+                textView.setText(addr);
+
                 double timezone = (Calendar.getInstance().getTimeZone()
                         .getOffset(Calendar.getInstance().getTimeInMillis()))
                         / (1000 * 60 * 60);
@@ -154,21 +170,12 @@ public class MainActivity extends AppCompatActivity {
                             + prayerTimes.get(i));
                 }
 
-                if(DateFormat.format("hh:mm aaa", Calendar.getInstance().getTime())== prayerTimes.get(2)) {
+                /*if(DateFormat.format("hh:mm aaa", Calendar.getInstance().getTime())== prayerTimes.get(6)) {
                     Toast.makeText(getApplicationContext(), "Peace mode activated", Toast.LENGTH_SHORT).show();
                    //silent = 0, vibrate =  1, ring =  3.
-                }
+                }*/
 
             }
-
-
-            private String getReminingTime()
-            {
-                String delegate = "hh:mm aaa";
-                return  (String) DateFormat.format(delegate,Calendar.getInstance().getTime());
-
-            }
-
 
             @Override
             public void onStatusChanged(String s, int i, Bundle bundle) {
@@ -201,6 +208,31 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private String getAddress(Double lati, Double longi ){
+        String address = null;
+        try {
+            Geocoder geo = new Geocoder(this, Locale.getDefault());
+            List<Address> addresses = geo.getFromLocation(lati, longi, 1);
+            if (addresses.isEmpty()) { return "No address found"; }
+            else {
+                /*
+                *getFeatureName -> Area
+                * getSubLocality - > Sector Name (North Nazimabad)
+                * getSubAdsminArea() - > City Name
+                * getAdminArea - > Province Name
+                * getCountryName -> Country Name
+                * */
+                if (addresses.size() > 0) {
+                    address =  addresses.get(0).getSubLocality() +", "+ addresses.get(0).getSubAdminArea()+","+ addresses.get(0).getCountryName();
+                    //Toast.makeText(getApplicationContext(), "Address:- " + addresses.get(0).getFeatureName() + addresses.get(0).getAdminArea() + addresses.get(0).getLocality(), Toast.LENGTH_LONG).show();
+                }
+            }
+            return address;
+        } catch (IOException  e ){
+            return e.getMessage();
+        }
+    }
+
     public int getCalculation(){
 
         if (spCalculation.getText().toString().equals("Jafari")) { return 0;}
@@ -222,10 +254,19 @@ public class MainActivity extends AppCompatActivity {
                 String current = (String) DateFormat.format("hh:mm aa", Calendar.getInstance().getTime());
                 String pray = prayerTimes.get(0).toString();
 
-                if(current == pray) {
-                    Toast.makeText(getApplicationContext(), "Peace mode activated", Toast.LENGTH_SHORT).show();
-                    ((AudioManager) getSystemService(Context.AUDIO_SERVICE)).setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
-                    Toast.makeText(context, "Helo", Toast.LENGTH_SHORT).show();
+                for ( Object pTime : prayerTimes) {
+                    try {
+                        if( current.compareTo(pTime.toString())== 0) {
+                            Toast.makeText(getApplicationContext(), "Peace mode activated", Toast.LENGTH_SHORT).show();
+                            try {
+                                ((AudioManager) getSystemService(Context.AUDIO_SERVICE)).setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
+                            }catch (Exception e){
+                                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    }catch (Exception e) {
+                        Toast.makeText(context, e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
 
