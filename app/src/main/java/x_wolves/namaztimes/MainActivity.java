@@ -1,6 +1,9 @@
 package x_wolves.namaztimes;
 
+
 import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -19,6 +22,8 @@ import android.support.annotation.FloatRange;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
@@ -257,6 +262,13 @@ public class MainActivity extends AppCompatActivity {
                 for ( Object pTime : prayerTimes) {
                     try {
                         if( current.compareTo(pTime.toString())== 0) {
+                            NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(MainActivity.this)
+                                    .setSmallIcon(R.drawable.ic_time)
+                                    .setContentTitle("Come towards Success!")
+                                    .setContentText("Its Salah time in your area"); //add salah name later...
+                            notificationBuilder.setDefaults(Notification.DEFAULT_LIGHTS);
+                            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(MainActivity.this);
+                            notificationManager.notify(1,notificationBuilder.build());
                             Toast.makeText(getApplicationContext(), "Peace mode activated", Toast.LENGTH_SHORT).show();
                             try {
                                 ((AudioManager) getSystemService(Context.AUDIO_SERVICE)).setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
